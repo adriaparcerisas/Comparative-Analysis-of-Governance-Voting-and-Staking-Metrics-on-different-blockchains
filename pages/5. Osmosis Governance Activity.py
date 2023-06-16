@@ -384,8 +384,8 @@ group by 1 order by 1 asc
 # In[11]:
 
 
-st.experimental_memo(ttl=21600)
-@st.cache
+
+@st.cache_data
 def compute(a):
     data=sdk.query(a)
     return data
@@ -394,7 +394,7 @@ data = compute(sql)
 df = pd.DataFrame(data.records)
 df.info()
 
-@st.cache
+@st.cache_data
 def compute2(a):
     data2=sdk.query(a)
     return data2
@@ -403,7 +403,7 @@ data2 = compute2(sql2)
 df2 = pd.DataFrame(data2.records)
 df2.info()
 
-@st.cache
+@st.cache_data
 def compute3(a):
     data3=sdk.query(a)
     return data3
@@ -411,8 +411,7 @@ def compute3(a):
 data3 = compute(sql3)
 df3 = pd.DataFrame(data3.records)
 df3.info()
-#st.subheader('Terra general activity metrics regarding transactions')
-#st.markdown('In this first part, we can take a look at the main activity metrics on Terra, where it can be seen how the number of transactions done across the protocol, as well as some other metrics such as fees and TPS.')
+#st.subheader('Osmosis general activity metrics regarding governance')
 
 
 # In[22]:
