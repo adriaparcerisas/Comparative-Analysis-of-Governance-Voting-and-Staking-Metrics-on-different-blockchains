@@ -74,7 +74,7 @@ order by 1 asc
 select 
 trunc(date,'month') as date,
 avg(total_near_delegated) as total_near_delegated
-from final --where date>=current_date - INTERVAL '3 MONTHS'
+from final where date>=current_date - INTERVAL '1 YEAR'
 group by 1
 """
 
@@ -98,7 +98,7 @@ else 'Others' end as ranks,
 FROM top10
 group by 1,2
 order by 1 asc 
- ) select trunc(date,'month') as date, ranks,avg(total_near_delegated) as total_near_delegated from final --where date>=current_date - INTERVAL '3 MONTHS'
+ ) select trunc(date,'month') as date, ranks,avg(total_near_delegated) as total_near_delegated from final where date>=current_date - INTERVAL '1 YEAR'
 group by 1,2 order by 1
 
 """
