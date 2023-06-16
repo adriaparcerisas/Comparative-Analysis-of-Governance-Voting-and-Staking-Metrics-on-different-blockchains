@@ -66,12 +66,9 @@ from near.core.fact_staking_pool_daily_balances
 final as (
 SELECT 
    date,
-   case when ranks <10 then 'Top 10'
-when ranks between 10 and 50 then 'Top 10-50'
-else 'Others' end as ranks,
    sum(balance) as total_near_delegated
 FROM top10
-group by 1,2
+group by 1
 order by 1 asc
 ) select * from final where date>=current_date - INTERVAL '3 MONTHS'
 """
@@ -211,7 +208,7 @@ from plotly.subplots import make_subplots
 fig = px.area(df, x="date", y="total_near_delegated")
 
 fig.update_layout(
-    title='Voting power of the top 66% of the active set validators change',
+    title='Voting power change of the total active set validators',
     xaxis_tickfont_size=14,
     legend=dict(
         x=0,
