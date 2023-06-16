@@ -231,7 +231,7 @@ st.plotly_chart(fig, theme="streamlit", use_container_width=True)
 
 st.altair_chart(alt.Chart(df2)
         .mark_area()
-        .encode(x="date:N", y=alt.Y("power_share:Q",stack="normalize"),color='ranks')
+        .encode(x="date:N", y=alt.Y("total_near_delegated:Q",stack="normalize"),color='ranks')
         .properties(title='Power share distribution per validators rank',width=600))
 
 st.altair_chart(alt.Chart(df3)
