@@ -63,9 +63,8 @@ st.markdown("The main idea of this app is to show an overview of how the staking
 st.markdown("These includes:") 
 st.markdown("1. **_Near Governance activity_**")
 st.markdown("2. **_Cosmos Governance activity_**")
-st.markdown("3. **_Terra Governance activity_**")
-st.markdown("4. **_Axelar Governance activity_**")
-st.markdown("5. **_Osmosis Governance activity_**") 
+st.markdown("3. **_Axelar Governance activity_**")
+st.markdown("4. **_Osmosis Governance activity_**") 
 
 
 # In[ ]:
