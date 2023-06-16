@@ -384,8 +384,8 @@ group by 1 order by 1 asc
 # In[11]:
 
 
-st.experimental_memo(ttl=21600)
-@st.cache
+
+@st.cache_data
 def compute(a):
     result=sdk.query(a)
     return result
@@ -401,8 +401,7 @@ df2.info()
 results3 = compute(sql3)
 df3 = pd.DataFrame(results3.records)
 df3.info()
-#st.subheader('Terra general activity metrics regarding transactions')
-#st.markdown('In this first part, we can take a look at the main activity metrics on Terra, where it can be seen how the number of transactions done across the protocol, as well as some other metrics such as fees and TPS.')
+#st.subheader('Axelar general activity metrics regarding governance')
 
 
 # In[22]:
