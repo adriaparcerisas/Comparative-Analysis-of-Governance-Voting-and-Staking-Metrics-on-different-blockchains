@@ -28,13 +28,13 @@ sdk = ShroomDK("7bfe27b2-e726-4d8d-b519-03abc6447728")
 # In[19]:
 
 
-st.title('Osmosis Governance Activity')
+st.title('Near Governance Activity')
 
 
 # In[20]:
 
 
-st.markdown('This page shows the basic governance activity trends on **Osmosis** chain. It is intended to provide an overview of the current activity and usage since inception.')
+st.markdown('This page shows the basic governance activity trends on **Near** chain. It is intended to provide an overview of the current activity and usage since inception.')
 
 
 # In[5]:
@@ -54,329 +54,118 @@ st.write('')
 
 
 sql = f"""
- WITH 
-stakes1 as (
-  SELECT 
-   block_timestamp,
-   tx_id,
-    REDELEGATE_SOURCE_VALIDATOR_ADDRESS as validator,
-    (amount / power(10,6))*(-1) as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is not null
+ with
+top10 as (
+select 
+date,
+address as validator,
+balance,
+rank() over (partition by date order by balance desc) as ranks
+from near.core.fact_staking_pool_daily_balances
 ),
-   stakes2 as (
-  SELECT 
-    block_timestamp,
-   tx_id,
-    validator_address as validator,
-    CASE WHEN action = 'undelegate' then (amount / power(10,6))*(-1) 
-    else amount/power(10,6) end as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is NULL
-), 
-   stakes12 as (
-  SELECT 
-   block_timestamp,
-   tx_id,
-    validator_address as validator,
-    (amount / power(10,6)) as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is not null
-),
-   stakes3 as (
-  SELECT * FROM stakes1 UNION SELECT * FROM stakes2 UNION SELECT * FROM stakes12
-), 
-monthly as (
-   SELECT 
-   trunc(block_timestamp,'day') as days,
-   tx_id,
-   validator,
-   sum(staked) as osmo_staked
-FROM stakes3 WHERE staked is not null group by 1,2,3
-),
-  totals as (
-   SELECT
-   days,
-   sum(osmo_staked) as month_osmo_staked,
-   sum(month_osmo_staked) over (order by days)as total_osmo_staked
-   from monthly
-   group by 1 order by 1
-   ),
-ranking as (
-   SELECT 
-   days,
-   validator,
-   count(distinct tx_id) as txs,
-   sum(osmo_staked) as total_near_delegated,
-sum(total_near_delegated) over (partition by validator order by days) as cumulative_near_delegated
-FROM monthly 
-group by 1,2
-),
-stats as (
-  SELECT
-  days,
-66 as bizantine_fault_tolerance,
-total_osmo_staked,
-(total_osmo_staked*bizantine_fault_tolerance)/100 as threshold--,
---sum(total_sol_delegated) over (partition by days order by validator_ranks asc) as total_sol_delegated_by_ranks,
---count(distinct vote_accounts) as validators
-from totals
-), 
-stats2 as (
-   select *,
-1 as numbering,
-sum(numbering) over (partition by days order by cumulative_near_delegated desc) as rank 
-from ranking
-   ),
-stats3 as (
-SELECT
-days,
-validator,
-cumulative_near_delegated,
-rank,
-sum(cumulative_near_delegated) over (partition by days order by rank asc) as total_staked
---count(case when total_staked)
---sum(1) over (partition by days order by stake_rank) as nakamoto_coeff
-  from stats2
-order by rank asc),
-final_nak as (
-SELECT
-a.days,
-validator,
-sum(case when total_staked <= threshold then cumulative_near_delegated end) as voting_power
-from stats3 a 
-join stats b 
-on a.days = b.days --where a.days >=CURRENT_DATE-INTERVAL '3 MONTHS'
+final as (
+SELECT 
+   date,
+   case when ranks <10 then 'Top 10'
+when ranks between 10 and 50 then 'Top 10-50'
+else 'Others' end as ranks,
+   sum(balance) as total_near_delegated
+FROM top10
 group by 1,2
 order by 1 asc
-   )
-SELECT
-days,
-sum(voting_power) as voting_power
-from final_nak
-group by 1 order by 1 asc 
+) select * from final where date>=current_date - INTERVAL '3 MONTHS'
 """
 
 sql2 = f"""
- WITH 
-stakes1 as (
-  SELECT 
-   block_timestamp,
-   tx_id,
-    REDELEGATE_SOURCE_VALIDATOR_ADDRESS as validator,
-    (amount / power(10,6))*(-1) as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is not null
+ with
+top10 as (
+select 
+date,
+address as validator,
+balance,
+rank() over (partition by date order by balance desc) as ranks
+from near.core.fact_staking_pool_daily_balances
 ),
-   stakes2 as (
-  SELECT 
-    block_timestamp,
-   tx_id,
-    validator_address as validator,
-    CASE WHEN action = 'undelegate' then (amount / power(10,6))*(-1) 
-    else amount/power(10,6) end as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is NULL
-), 
-  stakes12 as (
-  SELECT 
-   block_timestamp,
-   tx_id,
-    validator_address as validator,
-    (amount / power(10,6)) as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is not null
-),
-   stakes3 as (
-  SELECT * FROM stakes1 UNION SELECT * FROM stakes2 UNION SELECT * FROM stakes12
-), 
-monthly as (
-   SELECT 
-   trunc(block_timestamp,'day') as days,
-   tx_id,
-   validator,
-   sum(staked) as osmo_staked
-FROM stakes3 WHERE staked is not null group by 1,2,3
-),
-  totals as (
-   SELECT
-   days,
-   sum(osmo_staked) as month_osmo_staked,
-   sum(month_osmo_staked) over (order by days)as total_osmo_staked
-   from monthly
-   group by 1 order by 1
-   ),
-ranking as (
-   SELECT 
-   days,
-   validator,
-   count(distinct tx_id) as txs,
-   sum(osmo_staked) as total_near_delegated,
-sum(total_near_delegated) over (partition by validator order by days) as cumulative_near_delegated
-FROM monthly 
+final as (
+SELECT 
+   date,
+   case when ranks <10 then 'Top 10'
+when ranks between 10 and 50 then 'Top 10-50'
+else 'Others' end as ranks,
+   sum(balance) as total_near_delegated
+FROM top10
 group by 1,2
-),
-stats as (
-  SELECT
-  days,
-33 as bizantine_fault_tolerance,
-total_osmo_staked,
-(total_osmo_staked*bizantine_fault_tolerance)/100 as threshold--,
---sum(total_sol_delegated) over (partition by days order by validator_ranks asc) as total_sol_delegated_by_ranks,
---count(distinct vote_accounts) as validators
-from totals
-), 
-stats2 as (
-   select *,
-1 as numbering,
-sum(numbering) over (partition by days order by cumulative_near_delegated desc) as rank 
-from ranking
-   ),
-stats3 as (
-SELECT
-days,
-validator,
-cumulative_near_delegated,
-rank,
-sum(cumulative_near_delegated) over (partition by days order by rank asc) as total_staked
---count(case when total_staked)
---sum(1) over (partition by days order by stake_rank) as nakamoto_coeff
-  from stats2
-order by rank asc),
-finals as (
-SELECT
-a.days,
-rank,
-validator,
-cumulative_near_delegated/total_osmo_staked as power_share
-from stats3 a 
-join totals b 
-on a.days = b.days
---group by 1,2
-order by 1 asc
-   )
-SELECT
-   days,
-case when rank between 1 and 10 then '1. Top 10 validators'
-when rank between 10 and 50 then '2. Top 10-50 validators'
-else '3. Top +50 validators' end as ranks,
-sum(power_share) as power_share
-from finals --where days >= CURRENT_DATE-INTERVAL '3 MONTHS'
-group by 1,2
-order by 1 asc, 2
+order by 1 asc 
+ ) select * from final where date>=current_date - INTERVAL '3 MONTHS'
+
 
 """
 
 sql3 = f"""
  WITH 
-stakes1 as (
-  SELECT 
-   block_timestamp,
-   tx_id,
-    REDELEGATE_SOURCE_VALIDATOR_ADDRESS as validator,
-    (amount / power(10,6))*(-1) as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is not null
+totals as (
+SELECT 
+   date as months,
+    count(distinct address) as validators,
+   sum(balance) as cumulative_near_delegated
+FROM near.core.fact_staking_pool_daily_balances 
+group by 1
 ),
-   stakes2 as (
-  SELECT 
-    block_timestamp,
-   tx_id,
-    validator_address as validator,
-    CASE WHEN action = 'undelegate' then (amount / power(10,6))*(-1) 
-    else amount/power(10,6) end as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is NULL
-), 
-  stakes12 as (
-  SELECT 
-   block_timestamp,
-   tx_id,
-    validator_address as validator,
-    (amount / power(10,6)) as staked
-  FROM osmosis.core.fact_staking
-  where currency LIKE 'uosmo'
-  AND REDELEGATE_SOURCE_VALIDATOR_ADDRESS is not null
-),
-   stakes3 as (
-  SELECT * FROM stakes1 UNION SELECT * FROM stakes2 UNION SELECT * FROM stakes12
-), 
-monthly as (
+ranking3 as (
    SELECT 
-   trunc(block_timestamp,'day') as days,
-   tx_id,
-   validator,
-   sum(staked) as osmo_staked
-FROM stakes3 WHERE staked is not null group by 1,2,3
+   date as month,
+   address as validator,
+   balance as total_near_delegated,
+cumulative_near_delegated
+FROM near.core.fact_staking_pool_daily_balances x
+join totals y on date=y.months 
 ),
-  totals as (
-   SELECT
-   days,
-   sum(osmo_staked) as month_osmo_staked,
-   sum(month_osmo_staked) over (order by days)as total_osmo_staked
-   from monthly
-   group by 1 order by 1
-   ),
-ranking as (
-   SELECT 
-   days,
-   validator,
-   count(distinct tx_id) as txs,
-   sum(osmo_staked) as total_near_delegated,
-sum(total_near_delegated) over (partition by validator order by days) as cumulative_near_delegated
-FROM monthly 
-group by 1,2
-),
-stats as (
+   stats as (
   SELECT
-  days,
-35 as bizantine_fault_tolerance,
-total_osmo_staked,
-(total_osmo_staked*bizantine_fault_tolerance)/100 as threshold--,
---sum(total_sol_delegated) over (partition by days order by validator_ranks asc) as total_sol_delegated_by_ranks,
+  month,
+33 as bizantine_fault_tolerance,
+cumulative_near_delegated,
+(cumulative_near_delegated*bizantine_fault_tolerance)/100 as threshold--,
+--sum(total_sol_delegated) over (partition by month order by validator_ranks asc) as total_sol_delegated_by_ranks,
 --count(distinct vote_accounts) as validators
-from totals
-), 
+from ranking3
+),
 stats2 as (
    select *,
 1 as numbering,
-sum(numbering) over (partition by days order by cumulative_near_delegated desc) as rank 
-from ranking
+sum(numbering) over (partition by month order by total_near_delegated desc) as rank 
+from ranking3
    ),
 stats3 as (
 SELECT
-days,
+month,
 validator,
-cumulative_near_delegated,
+  total_near_delegated,
 rank,
-sum(cumulative_near_delegated) over (partition by days order by rank asc) as total_staked
+sum(total_near_delegated) over (partition by month order by rank asc) as total_staked
 --count(case when total_staked)
---sum(1) over (partition by days order by stake_rank) as nakamoto_coeff
-  from stats2
-order by rank asc),
-final_nak as (
+--sum(1) over (partition by month order by stake_rank) as nakamoto_coeff
+  from stats2 where total_near_delegated is not null and total_near_delegated>0
+order by rank asc), --select * from stats3
+   final_nak as (
 SELECT
-a.days,
+a.month,
 validator,
-count(case when total_staked <= threshold then 1 end) as nakamoto_coeff
+total_staked,
+threshold,
+count(case when total_staked <= threshold then 1 end) as counts,
+validators as vals,
+counts/vals as nakamoto_coeff
 from stats3 a 
 join stats b 
-on a.days = b.days --where a.days >=CURRENT_DATE-INTERVAL '3 MONTHS'
-group by 1,2
+on a.month = b.month --where a.month >=CURRENT_DATE-INTERVAL '3 MONTHS'
+join totals c on a.month=c.months
+group by 1,2,3,4,6
 order by 1 asc
-   )
+   ) --select * from final_nak
 SELECT
-days,
-   sum(nakamoto_coeff) as nakamoto_coeff
-from final_nak
+month,sum(nakamoto_coeff) as nakamoto_coeff
+from final_nak where month>=current_date-INTERVAL '3 MONTHS'
 group by 1 order by 1 asc 
 
 """
@@ -384,8 +173,7 @@ group by 1 order by 1 asc
 # In[11]:
 
 
-st.experimental_memo(ttl=21600)
-@st.cache
+@st.cache_data
 def compute(a):
     data=sdk.query(a)
     return data
@@ -394,7 +182,7 @@ data = compute(sql)
 df = pd.DataFrame(data.records)
 df.info()
 
-@st.cache
+@st.cache_data
 def compute2(a):
     data2=sdk.query(a)
     return data2
@@ -403,7 +191,7 @@ data2 = compute2(sql2)
 df2 = pd.DataFrame(data2.records)
 df2.info()
 
-@st.cache
+@st.cache_data
 def compute3(a):
     data3=sdk.query(a)
     return data3
@@ -411,8 +199,7 @@ def compute3(a):
 data3 = compute(sql3)
 df3 = pd.DataFrame(data3.records)
 df3.info()
-#st.subheader('Terra general activity metrics regarding transactions')
-#st.markdown('In this first part, we can take a look at the main activity metrics on Terra, where it can be seen how the number of transactions done across the protocol, as well as some other metrics such as fees and TPS.')
+#st.subheader('Near general activity metrics regarding Governance')
 
 
 # In[22]:
@@ -459,82 +246,109 @@ st.altair_chart(alt.Chart(df3)
 st.subheader('Validators and delegators activity')
 
 sql="""
-WITH
+
+with
   t1 as (
-  select 
-distinct proposal_id,
-min(block_timestamp)as debut
-from osmosis.core.fact_governance_proposal_deposits 
-  group by 1
+    SELECT
+      distinct x.tx_hash as proposal_id,
+      x.block_timestamp as debut
+    FROM
+      near.core.fact_transactions x
+      LEFT JOIN near.core.dim_address_labels y ON y.address = x.tx_receiver
+      LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
+    WHERE
+      label_type = 'dao'
+      AND x.block_timestamp >= current_date-INTERVAL '3 MONTHS'
+      AND tx_status = 'Success'
+      AND method_name = 'add_proposal'
   )
 select trunc(debut,'week') as weeks,
 count(distinct proposal_id) as new_proposals,
 sum(new_proposals) over (order by weeks) as cum_proposals
 from t1 group by 1 order by 1 asc
+
 """
 
 sql2 = f"""
- WITH 
- news as (
- SELECT 
-  	  raw_metadata[0]['account_address'] as validator_address,
-      min(trunc(block_timestamp,'day')) as debut
-    FROM osmosis.core.fact_staking
-  	 JOIN osmosis.core.dim_labels ON address = validator_address
-    where currency LIKE 'uosmo'
-    GROUP BY 1
-),
-   proposals_info as (
-SELECT 
-   proposal_id,
-    voter,
-    block_timestamp,
-   tx_id
-  FROM osmosis.core.fact_governance_votes
-   )
+ with
+t0 as (
 SELECT
-trunc(block_timestamp,'day') as date,
-   case when datediff('day',debut,date)<30 then 'New validator'
-   else 'Old validator' end as type,
-   count(distinct voter) as voters,
-   count(distinct tx_id) as votes
-from proposals_info x
-   join news y on voter=validator_address
-group by 1,2 order by 1 asc 
+distinct x.tx_signer as voter,
+min(trunc(x.block_timestamp,'day')) as debut
+from near.core.fact_transactions x
+      LEFT JOIN near.core.dim_address_labels y ON y.address = x.tx_receiver
+      LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
+    WHERE
+      label_type = 'dao'
+      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      AND tx_status = 'Success'
+      AND method_name = 'add_proposal'
+group by 1
+),
+  t1 as (
+    SELECT
+      trunc(x.block_timestamp,'day') as date,
+      x.tx_signer,
+     x.tx_hash
+    FROM
+      near.core.fact_transactions x
+      LEFT JOIN near.core.dim_address_labels y ON y.address = x.tx_receiver
+      LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
+    WHERE
+      label_type = 'dao'
+      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      AND tx_status = 'Success'
+      AND method_name = 'add_proposal'
+  )
+    select
+      date,
+      case when date<debut+interval'30 days' then 'New voter' else 'Old voter' end as type,
+      count(distinct tx_signer) as voters,
+      count(distinct tx_hash) as votes
+    from t1 join t0 on t1.tx_signer=t0.voter group by 1,2 order by 1 asc 
   """
 
 sql3="""
- WITH 
- news as (
- SELECT 
-  	  raw_metadata[0]['account_address'] as validator_address,
-      min(trunc(block_timestamp,'day')) as debut
-    FROM osmosis.core.fact_staking
-  	 JOIN osmosis.core.dim_labels ON address = validator_address
-    where currency LIKE 'uosmo'
-    GROUP BY 1
+   with
+t0 as (
+SELECT
+distinct x.tx_signer as voter,
+min(trunc(x.block_timestamp,'day')) as debut
+from near.core.fact_transactions x
+      LEFT JOIN near.core.dim_address_labels y ON y.address = x.tx_receiver
+      LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
+    WHERE
+      label_type = 'dao'
+      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      AND tx_status = 'Success'
+      AND method_name = 'add_proposal'
+group by 1
 ),
-   proposals_info as (
-SELECT 
-   proposal_id,
-    voter,
-    block_timestamp,
-   tx_id
-  FROM osmosis.core.fact_governance_votes
-   ),
-   final as (
+  t1 as (
+    SELECT
+      trunc(x.block_timestamp,'day') as date,
+      x.tx_signer,
+      x.tx_hash
+    FROM
+      near.core.fact_transactions x
+      LEFT JOIN near.core.dim_address_labels y ON y.address = x.tx_receiver
+      LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
+    WHERE
+      label_type = 'dao'
+      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      AND tx_status = 'Success'
+      AND method_name = 'add_proposal'
+  ),
+final as (
+    select
+      date,
+      case when date<debut+interval'30 days' then 'New voter' else 'Old voter' end as type,
+      tx_signer as voter,
+      count(distinct tx_hash) as votes
+    from t1 join t0 on t1.tx_signer=t0.voter group by 1,2,3 order by 1 asc 
+)
 SELECT
-trunc(block_timestamp,'day') as date,
-   case when datediff('day',debut,date)<30 then 'New validator'
-   else 'Old validator' end as type,
-   voter,
-   count(distinct tx_id) as votes
-from proposals_info x
-   join news y on voter=validator_address
-group by 1,2,3 
-   )
-SELECT
-trunc(date,'week') as weeks, type,avg(votes) as avg_votes_per_voter
+trunc(date,'day') as weeks, type,avg(votes) as avg_votes_per_voter
 from final group by 1,2 order by 1 asc 
 """
 
@@ -565,7 +379,7 @@ fig3.add_trace(go.Line(x=df['weeks'],
                 , yaxis='y2'))
 
 fig3.update_layout(
-    title='Osmosis proposals evolution',
+    title='Near proposals evolution',
     xaxis_tickfont_size=14,
     legend=dict(
         x=0,
@@ -606,37 +420,27 @@ st.altair_chart(alt.Chart(df3)
 
 # In[12]:
 
-
-sql="""
-SELECT
-distinct proposal_id,
-case when vote_option=1 then 'Yes'
-  when vote_option=2 then 'Abstain'
-  when vote_option=3 then 'No'
-  else 'No with veto' end as vote,
-count (distinct voter) as voters,
-count(distinct tx_id) as votes,
- sum(case when vote_weight is null then 0
-else vote_weight end) as weight
-from osmosis.core.fact_governance_votes
-group by 1,2
-order by 1 asc
-"""
-
 sql2="""
 WITH
   new_wallets as (
   select 
-  distinct tx_from as user,
+  distinct tx_signer as user,
   min(block_timestamp) as debut
-  from osmosis.core.fact_transactions
+  from near.core.fact_transactions
   group by 1
   ),
   votes as (
 SELECT
-distinct voter as user,
-  min(block_timestamp) as governance_debut
-from osmosis.core.fact_governance_votes
+distinct x.tx_signer as user,
+min(trunc(x.block_timestamp,'day')) as governance_debut
+from near.core.fact_transactions x
+      LEFT JOIN near.core.dim_address_labels y ON y.address = x.tx_receiver
+      LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
+    WHERE
+      label_type = 'dao'
+      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      AND tx_status = 'Success'
+      AND method_name = 'add_proposal'
 group by 1
   ),
   final as (
@@ -654,19 +458,26 @@ from final
 """
 
 sql3="""
-WITH
+  WITH
   new_wallets as (
   select 
-  distinct tx_from as user,
+  distinct tx_signer as user,
   min(block_timestamp) as debut
-  from osmosis.core.fact_transactions
+  from near.core.fact_transactions
   group by 1
   ),
   votes as (
 SELECT
-distinct voter as user,
-  min(block_timestamp) as governance_debut
-from osmosis.core.fact_governance_votes
+distinct x.tx_signer as user,
+min(trunc(x.block_timestamp,'day')) as governance_debut
+from near.core.fact_transactions x
+      LEFT JOIN near.core.dim_address_labels y ON y.address = x.tx_receiver
+      LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
+    WHERE
+      label_type = 'dao'
+      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      AND tx_status = 'Success'
+      AND method_name = 'add_proposal'
 group by 1
   ),
   final as (
@@ -687,57 +498,6 @@ group by 1
 order by 1 asc
 """
 
-sql4="""
-WITH
-  votes as (
-SELECT
-distinct voter as user,
-  min(block_timestamp) as debut,
-count(distinct proposal_id) as n_proposals
-from osmosis.core.fact_governance_votes
-group by 1
-  )
-SELECT
-trunc(debut,'day') as date,
-count(distinct user) as n_users,
-avg(n_proposals) as avg_proposals_per_user
-from votes
-group by 1
-order by 1 asc
-"""
-
-sql5="""
-WITH
-  active_users as (
-  SELECT
-  distinct voter as active_user,
-  min(block_timestamp) as debut
-  from osmosis.core.fact_governance_votes
-  group by 1
-  ),
-  proposals as (
-  SELECT
-  distinct proposal_id,
-  min(block_timestamp) as proposal_debut,
-  count(distinct tx_id) as votes,
-  count(distinct voter) as participants
-  from osmosis.core.fact_governance_votes
-  group by 1
-  )
-SELECT
-trunc(proposal_debut,'day') as date,
-  proposal_id,
-votes,
-participants,
-  count(distinct active_user) as active_users
-from proposals x, active_users y where debut::date<proposal_debut::date
-group by 1,2,3,4
-order by 1 asc
-"""
-
-data = compute(sql)
-df = pd.DataFrame(data.records)
-df.info()
 
 data2 = compute(sql2)
 df2 = pd.DataFrame(data2.records)
@@ -747,54 +507,10 @@ data3 = compute(sql3)
 df3 = pd.DataFrame(data3.records)
 df3.info()
 
-data4 = compute(sql4)
-df4 = pd.DataFrame(data4.records)
-df4.info()
-
-data5 = compute(sql5)
-df5 = pd.DataFrame(data5.records)
-df5.info()
-
-
-#Create figure with secondary y-axis
-fig3 = make_subplots(specs=[[{"secondary_y": True}]])
-
-fig3.add_trace(go.Bar(x=df['proposal_id'],
-                y=df['voters'],
-                name='# of proposals',
-                marker_color='rgb(255,215,0)'
-                , yaxis='y'))
-fig3.add_trace(go.Line(x=df['proposal_id'],
-                y=df['votes'],
-                name='# of proposals',
-                marker_color='rgb(255,69,0)'
-                , yaxis='y2'))
-
-fig3.update_layout(
-    title='Votes and voters per Proposal',
-    xaxis_tickfont_size=14,
-    legend=dict(
-        x=0,
-        y=1.0,
-        bgcolor='rgba(255, 255, 255, 0)',
-        bordercolor='rgba(255, 255, 255, 0)'
-    ),
-    barmode='group',
-    bargap=0.15, # gap between bars of adjacent location coordinates.
-    bargroupgap=0.1 # gap between bars of the same location coordinate.
-)
-
-# Set y-axes titles
-fig3.update_yaxes(title_text="Votes", secondary_y=False)
-fig3.update_yaxes(title_text="Voters", secondary_y=True)
 
 
 
-# Create figure with secondary y-axis
-st.altair_chart(alt.Chart(df)
-        .mark_bar()
-        .encode(x='proposal_id:N', y='votes:Q',color='vote')
-        .properties(title='Proposal votes per option',width=600))
+
 
 col1,col2=st.columns(2)
 with col1:
@@ -803,78 +519,5 @@ col2.altair_chart(alt.Chart(df3)
         .mark_line()
         .encode(x='date:N', y='avg_time_to_governance_participation:Q')
         .properties(title='Average time to governance participation',width=300))
-
-#Create figure with secondary y-axis
-fig3 = make_subplots(specs=[[{"secondary_y": True}]])
-
-fig3.add_trace(go.Bar(x=df4['date'],
-                y=df4['n_users'],
-                name='# of users',
-                marker_color='rgb(255,215,0)'
-                , yaxis='y'))
-fig3.add_trace(go.Line(x=df4['date'],
-                y=df4['avg_proposals_per_user'],
-                name='# of proposals',
-                marker_color='rgb(255,69,0)'
-                , yaxis='y2'))
-
-fig3.update_layout(
-    title='Average proposal participation per user over time',
-    xaxis_tickfont_size=14,
-    legend=dict(
-        x=0,
-        y=1.0,
-        bgcolor='rgba(255, 255, 255, 0)',
-        bordercolor='rgba(255, 255, 255, 0)'
-    ),
-    barmode='group',
-    bargap=0.15, # gap between bars of adjacent location coordinates.
-    bargroupgap=0.1 # gap between bars of the same location coordinate.
-)
-
-# Set y-axes titles
-fig3.update_yaxes(title_text="Users", secondary_y=False)
-fig3.update_yaxes(title_text="Proposals", secondary_y=True)
-st.plotly_chart(fig3, theme="streamlit", use_container_width=True)
-
-
-
-fig3 = make_subplots(specs=[[{"secondary_y": True}]])
-
-fig3.add_trace(go.Line(x=df5['date'],
-                y=df5['participants'],
-                name='# of users',
-                marker_color='rgb(255,215,0)'
-                , yaxis='y'))
-fig3.add_trace(go.Line(x=df5['date'],
-                y=df5['active_users'],
-                name='# of users',
-                marker_color='rgb(255,69,0)'
-                , yaxis='y2'))
-
-fig3.update_layout(
-    title='Proposal participants vs active users over time',
-    xaxis_tickfont_size=14,
-    legend=dict(
-        x=0,
-        y=1.0,
-        bgcolor='rgba(255, 255, 255, 0)',
-        bordercolor='rgba(255, 255, 255, 0)'
-    ),
-    barmode='group',
-    bargap=0.15, # gap between bars of adjacent location coordinates.
-    bargroupgap=0.1 # gap between bars of the same location coordinate.
-)
-
-# Set y-axes titles
-fig3.update_yaxes(title_text="Participants", secondary_y=False)
-fig3.update_yaxes(title_text="Active users", secondary_y=True)
-st.plotly_chart(fig3, theme="streamlit", use_container_width=True)
-
-
-
-# In[ ]:
-
-
 
 
