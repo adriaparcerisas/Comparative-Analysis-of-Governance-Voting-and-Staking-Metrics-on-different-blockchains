@@ -70,7 +70,12 @@ SELECT
 FROM top10
 group by 1
 order by 1 asc
-) select * from final where date>=current_date - INTERVAL '3 MONTHS'
+)
+select 
+trunc(date,'month') as date,
+avg(balance) as total_near_delegated
+from final --where date>=current_date - INTERVAL '3 MONTHS'
+group by 1
 """
 
 sql2 = f"""
@@ -93,7 +98,7 @@ else 'Others' end as ranks,
 FROM top10
 group by 1,2
 order by 1 asc 
- ) select * from final where date>=current_date - INTERVAL '3 MONTHS'
+ ) select trunc(date,'month') as date, ranks,avg(balance) as total_near_delegated from final where date>=current_date - INTERVAL '3 MONTHS'
 
 
 """
@@ -159,11 +164,14 @@ on a.month = b.month --where a.month >=CURRENT_DATE-INTERVAL '3 MONTHS'
 join totals c on a.month=c.months
 group by 1,2,3,4,6
 order by 1 asc
-   ) --select * from final_nak
+   ), --select * from final_nak
+final as (
 SELECT
 month as date,sum(nakamoto_coeff) as nakamoto_coeff
-from final_nak where month>=current_date-INTERVAL '3 MONTHS'
+from final_nak --where month>=current_date-INTERVAL '3 MONTHS'
 group by 1 order by 1 asc 
+)
+select trunc(date,'month') as date,round(avg(nakamoto_coeff),0) as nakamoto_coeff from final group by 1 order by 1
 
 """
 
@@ -255,7 +263,7 @@ with
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '3 MONTHS'
+      --AND x.block_timestamp >= current_date-INTERVAL '3 MONTHS'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
   )
@@ -277,14 +285,14 @@ from near.core.fact_transactions x
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      --AND x.block_timestamp >= current_date-INTERVAL '3 months'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
 group by 1
 ),
   t1 as (
     SELECT
-      trunc(x.block_timestamp,'day') as date,
+      trunc(x.block_timestamp,'day') as dates,
       x.tx_signer,
      x.tx_hash
     FROM
@@ -293,13 +301,13 @@ group by 1
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      --AND x.block_timestamp >= current_date-INTERVAL '3 months'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
   )
     select
-      date,
-      case when date<debut+interval'30 days' then 'New voter' else 'Old voter' end as type,
+      trunc(dates,'week') as date,
+      case when dates<debut+interval'30 days' then 'New voter' else 'Old voter' end as type,
       count(distinct tx_signer) as voters,
       count(distinct tx_hash) as votes
     from t1 join t0 on t1.tx_signer=t0.voter group by 1,2 order by 1 asc 
@@ -316,7 +324,7 @@ from near.core.fact_transactions x
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      --AND x.block_timestamp >= current_date-INTERVAL '3 months'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
 group by 1
@@ -332,7 +340,7 @@ group by 1
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      --AND x.block_timestamp >= current_date-INTERVAL '3 months'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
   ),
@@ -345,7 +353,7 @@ final as (
     from t1 join t0 on t1.tx_signer=t0.voter group by 1,2,3 order by 1 asc 
 )
 SELECT
-trunc(date,'day') as weeks, type,avg(votes) as avg_votes_per_voter
+trunc(date,'week') as weeks, type,avg(votes) as avg_votes_per_voter
 from final group by 1,2 order by 1 asc 
 """
 
@@ -435,7 +443,7 @@ from near.core.fact_transactions x
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      --AND x.block_timestamp >= current_date-INTERVAL '3 months'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
 group by 1
@@ -472,7 +480,7 @@ from near.core.fact_transactions x
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '3 months'
+      --AND x.block_timestamp >= current_date-INTERVAL '3 months'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
 group by 1
@@ -487,7 +495,7 @@ from new_wallets x
   join votes y on x.user=y.user 
   )
 SELECT
-trunc(governance_debut,'day') as date,
+trunc(governance_debut,'week') as date,
 avg(time_to_governance_participation) as avg_time_to_governance_participation,
 count(distinct user) as participants
 from final
