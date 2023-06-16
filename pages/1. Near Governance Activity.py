@@ -74,7 +74,7 @@ order by 1 asc
 select 
 trunc(date,'month') as date,
 avg(total_near_delegated) as total_near_delegated
-from final where date>=current_date - INTERVAL '1 YEAR'
+from final where date>=current_date - INTERVAL '2 YEARS'
 group by 1
 """
 
@@ -98,7 +98,7 @@ else 'Others' end as ranks,
 FROM top10
 group by 1,2
 order by 1 asc 
- ) select trunc(date,'month') as date, ranks,avg(total_near_delegated) as total_near_delegated from final where date>=current_date - INTERVAL '1 YEAR'
+ ) select trunc(date,'month') as date, ranks,avg(total_near_delegated) as total_near_delegated from final where date>=current_date - INTERVAL '2 YEARS'
 group by 1,2 order by 1
 
 """
@@ -160,7 +160,7 @@ validators as vals,
 counts/vals as nakamoto_coeff
 from stats3 a 
 join stats b 
-on a.month = b.month --where a.month >=CURRENT_DATE-INTERVAL '1 YEAR'
+on a.month = b.month --where a.month >=CURRENT_DATE-INTERVAL '2 YEARS'
 join totals c on a.month=c.months
 group by 1,2,3,4,6
 order by 1 asc
@@ -168,7 +168,7 @@ order by 1 asc
 final as (
 SELECT
 month as date,sum(nakamoto_coeff) as nakamoto_coeff
-from final_nak where month>=current_date-INTERVAL '1 YEAR'
+from final_nak where month>=current_date-INTERVAL '2 YEARS'
 group by 1 order by 1 asc 
 )
 select trunc(date,'month') as date,round(avg(nakamoto_coeff),0) as nakamoto_coeff from final group by 1 order by 1
@@ -263,7 +263,7 @@ with
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '1 YEAR'
+      AND x.block_timestamp >= current_date-INTERVAL '2 YEARS'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
   )
@@ -285,7 +285,7 @@ from near.core.fact_transactions x
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '1 YEAR'
+      AND x.block_timestamp >= current_date-INTERVAL '2 YEARS'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
 group by 1
@@ -301,7 +301,7 @@ group by 1
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '1 YEAR'
+      AND x.block_timestamp >= current_date-INTERVAL '2 YEARS'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
   )
@@ -324,7 +324,7 @@ from near.core.fact_transactions x
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '1 YEAR'
+      AND x.block_timestamp >= current_date-INTERVAL '2 YEARS'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
 group by 1
@@ -340,7 +340,7 @@ group by 1
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '1 YEAR'
+      AND x.block_timestamp >= current_date-INTERVAL '2 YEARS'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
   ),
@@ -443,7 +443,7 @@ from near.core.fact_transactions x
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '1 YEAR'
+      AND x.block_timestamp >= current_date-INTERVAL '2 YEARS'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
 group by 1
@@ -480,7 +480,7 @@ from near.core.fact_transactions x
       LEFT JOIN near.core.fact_actions_events_function_call z on z.tx_hash = x.tx_hash
     WHERE
       label_type = 'dao'
-      AND x.block_timestamp >= current_date-INTERVAL '1 YEAR'
+      AND x.block_timestamp >= current_date-INTERVAL '2 YEARS'
       AND tx_status = 'Success'
       AND method_name = 'add_proposal'
 group by 1
