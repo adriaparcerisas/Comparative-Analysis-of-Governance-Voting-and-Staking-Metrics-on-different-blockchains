@@ -449,8 +449,8 @@ group by 1 order by 1 asc
 # In[11]:
 
 
-st.experimental_memo(ttl=21600)
-@st.cache
+
+@st.cache_data
 def compute(a):
     data=sdk.query(a)
     return data
