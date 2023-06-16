@@ -164,7 +164,7 @@ group by 1,2,3,4,6
 order by 1 asc
    ) --select * from final_nak
 SELECT
-month,sum(nakamoto_coeff) as nakamoto_coeff
+month as date,sum(nakamoto_coeff) as nakamoto_coeff
 from final_nak where month>=current_date-INTERVAL '3 MONTHS'
 group by 1 order by 1 asc 
 
@@ -208,7 +208,7 @@ df3.info()
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-fig = px.area(df, x="days", y="voting_power")
+fig = px.area(df, x="date", y="total_near_delegated")
 
 fig.update_layout(
     title='Voting power of the top 66% of the active set validators change',
@@ -231,12 +231,12 @@ st.plotly_chart(fig, theme="streamlit", use_container_width=True)
 
 st.altair_chart(alt.Chart(df2)
         .mark_area()
-        .encode(x="days:N", y=alt.Y("power_share:Q",stack="normalize"),color='ranks')
+        .encode(x="date:N", y=alt.Y("power_share:Q",stack="normalize"),color='ranks')
         .properties(title='Power share distribution per validators rank',width=600))
 
 st.altair_chart(alt.Chart(df3)
         .mark_bar()
-        .encode(x='days:N', y='nakamoto_coeff:Q',color='nakamoto_coeff')
+        .encode(x='date:N', y='nakamoto_coeff:Q',color='nakamoto_coeff')
         .properties(title='Nakamoto coefficient evolution',width=600))
 
 
