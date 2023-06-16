@@ -39,7 +39,7 @@ st.write('')
 # In[11]:
 
 
-st.markdown('The full sources used to develop this app can be found to the following link: [Github link](https://github.com/adriaparcerisas/cosmos-governance)')
+st.markdown('The full sources used to develop this app can be found to the following link: [Github link](https://github.com/adriaparcerisas/Comparative-Analysis-of-Governance-Voting-and-Staking-Metrics-on-different-blockchains)')
 
 
 # In[12]:
