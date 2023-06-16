@@ -171,7 +171,7 @@ validator,
 sum(case when total_staked <= threshold then cumulative_near_delegated end) as voting_power
 from stats3 a 
 join stats b 
-on a.days = b.days --where a.days >=CURRENT_DATE-INTERVAL '3 MONTHS'
+on a.days = b.days where a.days >=CURRENT_DATE-INTERVAL '1 YEAR'
 group by 1,2
 order by 1 asc
    )
@@ -312,7 +312,7 @@ case when rank between 1 and 10 then '1. Top 10 validators'
 when rank between 10 and 50 then '2. Top 10-50 validators'
 else '3. Top 50-100 validators' end as ranks,
 sum(power_share) as power_share
-from finals --where days >= CURRENT_DATE-INTERVAL '3 MONTHS'
+from finals where days >= CURRENT_DATE-INTERVAL '1 YEAR'
 group by 1,2
 order by 1 asc, 2
 """
@@ -434,7 +434,7 @@ validator,
 count(case when total_staked <= threshold then 1 end) as nakamoto_coeff
 from stats3 a 
 join stats b 
-on a.days = b.days --where a.days >=CURRENT_DATE-INTERVAL '3 MONTHS'
+on a.days = b.days where a.days >=CURRENT_DATE-INTERVAL '1 YEAR'
 group by 1,2
 order by 1 asc
    )
@@ -525,7 +525,9 @@ from terra.core.fact_governance_votes
 select trunc(debut,'week') as weeks,
 count(distinct proposal_id) as new_proposals,
 sum(new_proposals) over (order by weeks) as cum_proposals
-from t1 group by 1 order by 1 asc
+from t1 
+where weeks>=current_date-INTERVAL '1 YEAR'
+group by 1 order by 1 asc
 """
 
 sql2 = f"""
@@ -553,6 +555,7 @@ trunc(block_timestamp,'day') as date,
    count(distinct tx_id) as votes
 from proposals_info x
    join news y on voter=validator
+   where date>=current_date-INTERVAL '1 YEAR'
 group by 1,2 order by 1 asc 
   """
 
@@ -582,6 +585,7 @@ trunc(block_timestamp,'day') as date,
    count(distinct tx_id) as votes
 from proposals_info x
    join news y on voter=validator
+   where date>=current_date-INTERVAL '1 YEAR'
 group by 1,2,3 
    )
 SELECT
@@ -669,6 +673,7 @@ count(distinct tx_id) as votes,
  sum(case when vote_weight is null then 0
 else vote_weight end) as weight
 from terra.core.fact_governance_votes
+where block_timestamp>=current_date-INTERVAL '1 YEAR'
 group by 1,2
 order by 1 asc
 """
@@ -697,6 +702,7 @@ governance_debut,
 datediff('day',debut,governance_debut) as time_to_governance_participation
 from new_wallets x
   join votes y on x.user=y.user 
+  where governance_debut>=current_date-INTERVAL '1 YEAR'
   )
 SELECT
 avg(time_to_governance_participation) as avg_time_to_governance_participation
@@ -727,6 +733,7 @@ governance_debut,
 datediff('day',debut,governance_debut) as time_to_governance_participation
 from new_wallets x
   join votes y on x.user=y.user 
+  where governance_debut>=current_date-INTERVAL '1 YEAR'
   )
 SELECT
 trunc(governance_debut,'day') as date,
@@ -751,7 +758,7 @@ SELECT
 trunc(debut,'day') as date,
 count(distinct user) as n_users,
 avg(n_proposals) as avg_proposals_per_user
-from votes
+from votes where date>=current_date-INTERVAL '1 YEAR'
 group by 1
 order by 1 asc
 """
@@ -780,7 +787,7 @@ trunc(proposal_debut,'day') as date,
 votes,
 participants,
   count(distinct active_user) as active_users
-from proposals x, active_users y where debut::date<proposal_debut::date
+from proposals x, active_users y where debut::date<proposal_debut::date and proposal_debut::date>=current_date-INTERVAL '1 YEAR'
 group by 1,2,3,4
 order by 1 asc
 """
